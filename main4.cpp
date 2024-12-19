@@ -36,7 +36,7 @@ struct Paddle {
 static void gameScreen(void);
 
 // Enum untuk layar permainan
-typedef enum { LOGO = 0, TITLE, CREDITS, GAMEPLAY1, GAMEPLAY2, ENDING } GameScreen;
+typedef enum { LOGO = 0, TITLE, CREDITS, GAMEPLAY1,GAMEAI1, GAMEAI2,GAMEAI3, ENDING } GameScreen;
 static int currentScreen = LOGO; // Layar saat ini
 static int framesCounter = 0; // Penghitung frame
 Ball ball; // Objek bola
@@ -49,10 +49,13 @@ const char* winnerText = nullptr; // Teks pemenang
 static RenderTexture2D screenTarget = { 0 }; // Render texture untuk efek
 static Texture2D texLogo = { 0 }; // Tekstur logo
 
+static Sound fxCollision = { 0 };
+
 int main() {
     // Inisialisasi jendela
     InitWindow(800, 600, "BlaterPong");
     SetWindowState(FLAG_VSYNC_HINT); // Mengaktifkan V-Sync
+    InitAudioDevice();
 
     // Inisialisasi bola
     ball.x = GetScreenWidth() / 2.0f;
@@ -77,6 +80,9 @@ int main() {
 
     // Memuat tekstur logo
     texLogo = LoadTexture("resource/logo.png");
+
+    fxCollision = LoadSound ("resource/Audio/Collision.wav");
+
     if (texLogo.id == 0) {
         // Jika tekstur gagal dimuat, tampilkan pesan kesalahan
         printf("Failed to load texture: resource/logo.png\n");
@@ -93,6 +99,8 @@ int main() {
 
     // Membersihkan sumber daya
     UnloadTexture(texLogo);
+
+    UnloadSound(fxCollision);
     CloseWindow(); // Menutup jendela
 
     return 0;
@@ -131,7 +139,7 @@ static void gameScreen(void) {
             // Menampilkan layar TITLE
             if (IsKeyPressed(KEY_ENTER)) {
                 framesCounter = 0;
-                currentScreen = GAMEPLAY2; // Pindah ke layar GAMEPLAY saat ENTER ditekan
+                currentScreen = GAMEAI1; // Pindah ke layar GAMEPLAY saat ENTER ditekan
             }
             BeginDrawing();
             ClearBackground(BLACK); // Bersihkan latar belakang layar TITLE
@@ -141,6 +149,180 @@ static void gameScreen(void) {
         } break;
 
         case GAMEPLAY1: {
+
+
+
+
+            // Update posisi bola
+            ball.x += ball.speedX * GetFrameTime();
+            ball.y += ball.speedY * GetFrameTime();
+
+            // Deteksi tabrakan dengan tepi atas dan bawah
+            if (ball.y < 0) {
+                PlaySound(fxCollision);
+                ball.y = 0;
+                ball.speedY *= -1; // Balik arah bola
+            }
+            if (ball.y > GetScreenHeight()) {
+               PlaySound(fxCollision);
+                ball.y = GetScreenHeight();
+                ball.speedY *= -1; // Balik arah bola
+            }
+
+            // Kontrol paddle kiri
+            if (IsKeyDown(KEY_W) && leftPaddle.y > 50) {
+                leftPaddle.y -= leftPaddle.speed * GetFrameTime();
+            }
+            if (IsKeyDown(KEY_S) && leftPaddle.y < GetScreenHeight() - 50) {
+                leftPaddle.y += leftPaddle.speed * GetFrameTime();
+            }
+
+            // Kontrol paddle kanan
+            if (IsKeyDown(KEY_UP) && rightPaddle.y > 50) {
+                rightPaddle.y -= rightPaddle.speed * GetFrameTime();
+            }
+            if (IsKeyDown(KEY_DOWN) && rightPaddle.y < GetScreenHeight() - 50) {
+                rightPaddle.y += rightPaddle.speed * GetFrameTime();
+            }
+
+            // Deteksi tabrakan bola dengan paddle
+            if (CheckCollisionCircleRec(Vector2{ ball.x, ball.y }, ball.radius, leftPaddle.GetRect())) {
+                if (ball.speedX < 0) {
+                        PlaySound(fxCollision);
+                    ball.speedX *= -1.1f; // Tingkatkan kecepatan bola
+                    ball.speedY = (ball.y - leftPaddle.y) / (leftPaddle.height / 2) * ball.speedX; // Atur kecepatan Y
+                }
+            }
+            if (CheckCollisionCircleRec(Vector2{ ball.x, ball.y }, ball.radius, rightPaddle.GetRect())) {
+                if (ball.speedX > 0) {
+                        PlaySound(fxCollision);
+                    ball.speedX *= -1.1f; // Tingkatkan kecepatan bola
+                    ball.speedY = (ball.y - rightPaddle.y) / (rightPaddle.height / 2) * -ball.speedX; // Atur kecepatan Y
+                }
+            }
+
+
+            // Cek jika bola keluar dari layar
+            if (ball.x < 0) {
+                winnerText = "Right Player Wins!"; // Pemain kanan menang
+            }
+            if (ball.x > GetScreenWidth()) {
+                winnerText = "Left Player Wins!"; // Pemain kiri menang
+            }
+            if (winnerText && IsKeyPressed(KEY_SPACE)) {
+                // Reset permainan jika SPACE ditekan
+                ball.x = GetScreenWidth() / 2;
+                ball.y = GetScreenHeight() / 2;
+                ball.speedX = 300;
+                ball.speedY = 300;
+                winnerText = nullptr; // Reset teks pemenang
+            }
+
+            // Mulai menggambar ke layar utama
+            BeginDrawing();
+            ClearBackground(BLACK); // Bersihkan latar belakang
+            ball.Draw(); // Gambar bola
+            leftPaddle.Draw(); // Gambar paddle kiri
+            rightPaddle.Draw(); // Gambar paddle kanan
+
+            // Tampilkan teks pemenang jika ada
+            if (winnerText) {
+                int textWidth = MeasureText(winnerText, 60);
+                DrawText(winnerText, GetScreenWidth() / 2 - textWidth / 2, GetScreenHeight() / 2 - 30, 60, YELLOW);
+            }
+
+            DrawFPS(10, 10); // Tampilkan FPS
+            EndDrawing();
+
+        } break;
+        case GAMEAI1: {
+
+
+
+            // Update posisi bola
+            ball.x += ball.speedX * GetFrameTime();
+            ball.y += ball.speedY * GetFrameTime();
+
+            // Deteksi tabrakan dengan tepi atas dan bawah
+            if (ball.y < 0) {
+                    PlaySound(fxCollision);
+                ball.y = 0;
+                ball.speedY *= -1; // Balik arah bola
+            }
+            if (ball.y > GetScreenHeight()) {
+                    PlaySound(fxCollision);
+                ball.y = GetScreenHeight();
+                ball.speedY *= -1; // Balik arah bola
+            }
+
+            // Kontrol paddle kiri
+            if (leftPaddle.y > ball.y && (leftPaddle.y - ball.y) > 20 && ball.x < 400 && ball.x > 0 ) // Ketika Paddle berada di bawah bola, maka akan bergerak ke atas. Juga paddle bergerak hanya ketika selisih jaraknya lebih dari 20 dan ketika jarak bola x melewati setengah lapangan
+                {
+                leftPaddle.y -=  ( (leftPaddle.y - ball.y+10) + ball.x - leftPaddle.x) *1.2 * GetFrameTime();
+            }
+            if (leftPaddle.y < ball.y && (ball.y -leftPaddle.y) > 20 && ball.x < 400 && ball.x > 0 ) // Ketika Paddle berada di atas bola, maka akan bergerak ke bawah. Juga paddle bergerak hanya ketika selisih jaraknya lebih dari 20 dan ketika jarak bola x melewati setengah lapangan
+            {
+                leftPaddle.y += ( (ball.y -leftPaddle.y+10) + ball.x - leftPaddle.x ) *1.2* GetFrameTime();
+            }
+
+            // Kontrol paddle kanan
+            if (IsKeyDown(KEY_UP) && rightPaddle.y > 50) {
+                rightPaddle.y -= rightPaddle.speed * GetFrameTime();
+            }
+            if (IsKeyDown(KEY_DOWN) && rightPaddle.y < GetScreenHeight() - 50) {
+                rightPaddle.y += rightPaddle.speed * GetFrameTime();
+            }
+
+            // Deteksi tabrakan bola dengan paddle
+            if (CheckCollisionCircleRec(Vector2{ ball.x, ball.y }, ball.radius, leftPaddle.GetRect())) {
+                if (ball.speedX < 0) {
+                        PlaySound(fxCollision);
+                    ball.speedX *= -1.1f; // Tingkatkan kecepatan bola
+                    ball.speedY = (ball.y - leftPaddle.y) / (leftPaddle.height / 2) * ball.speedX; // Atur kecepatan Y
+                }
+            }
+            if (CheckCollisionCircleRec(Vector2{ ball.x, ball.y }, ball.radius, rightPaddle.GetRect())) {
+                if (ball.speedX > 0) {
+                        PlaySound(fxCollision);
+                    ball.speedX *= -1.1f; // Tingkatkan kecepatan bola
+                    ball.speedY = (ball.y - rightPaddle.y) / (rightPaddle.height / 2) * -ball.speedX; // Atur kecepatan Y
+                }
+            }
+
+            // Cek jika bola keluar dari layar
+            if (ball.x < 0) {
+                winnerText = "Right Player Wins!"; // Pemain kanan menang
+            }
+            if (ball.x > GetScreenWidth()) {
+                winnerText = "Left Player Wins!"; // Pemain kiri menang
+            }
+            if (winnerText && IsKeyPressed(KEY_SPACE)) {
+                // Reset permainan jika SPACE ditekan
+                ball.x = GetScreenWidth() / 2;
+                ball.y = GetScreenHeight() / 2;
+                ball.speedX = 300;
+                ball.speedY = 300;
+                winnerText = nullptr; // Reset teks pemenang
+            }
+
+            // Mulai menggambar ke layar utama
+            BeginDrawing();
+            ClearBackground(BLACK); // Bersihkan latar belakang
+            ball.Draw(); // Gambar bola
+            leftPaddle.Draw(); // Gambar paddle kiri
+            rightPaddle.Draw(); // Gambar paddle kanan
+
+            // Tampilkan teks pemenang jika ada
+            if (winnerText) {
+                int textWidth = MeasureText(winnerText, 60);
+                DrawText(winnerText, GetScreenWidth() / 2 - textWidth / 2, GetScreenHeight() / 2 - 30, 60, YELLOW);
+            }
+
+            DrawFPS(10, 10); // Tampilkan FPS
+            EndDrawing();
+
+        } break;
+        case GAMEAI2: {
 
 
             // Update posisi bola
@@ -158,11 +340,13 @@ static void gameScreen(void) {
             }
 
             // Kontrol paddle kiri
-            if (IsKeyDown(KEY_W) && leftPaddle.y > 50) {
-                leftPaddle.y -= leftPaddle.speed * GetFrameTime();
+            if (leftPaddle.y > ball.y && (leftPaddle.y - ball.y) > 20 && ball.x < 600 && ball.x > 0 ) // Ketika Paddle berada di bawah bola, maka akan bergerak ke atas. Juga paddle bergerak hanya ketika selisih jaraknya lebih dari 20 dan ketika jarak bola x melewati setengah lapangan
+                {
+                leftPaddle.y -= leftPaddle.speed/2* GetFrameTime();
             }
-            if (IsKeyDown(KEY_S) && leftPaddle.y < GetScreenHeight() - 50) {
-                leftPaddle.y += leftPaddle.speed * GetFrameTime();
+            if (leftPaddle.y < ball.y && (ball.y -leftPaddle.y) > 20 && ball.x < 600 && ball.x > 0) // Ketika Paddle berada di atas bola, maka akan bergerak ke bawah. Juga paddle bergerak hanya ketika selisih jaraknya lebih dari 20 dan ketika jarak bola x melewati setengah lapangan
+            {
+                leftPaddle.y += leftPaddle.speed/2* GetFrameTime();
             }
 
             // Kontrol paddle kanan
@@ -221,7 +405,7 @@ static void gameScreen(void) {
 
         } break;
 
-        case GAMEPLAY2: {
+        case GAMEAI3: {
 
 
             // Update posisi bola
@@ -239,11 +423,11 @@ static void gameScreen(void) {
             }
 
             // Kontrol paddle kiri
-            if (leftPaddle.y > ball.y && (leftPaddle.y - ball.y) > 20 && ball.x < 400 ) // Ketika Paddle berada di bawah bola, maka akan bergerak ke atas. Juga paddle bergerak hanya ketika selisih jaraknya lebih dari 20 dan ketika jarak bola x melewati setengah lapangan
+            if (leftPaddle.y > ball.y && (leftPaddle.y - ball.y) > 20 && ball.x < 400 && ball.x > 0 ) // Ketika Paddle berada di bawah bola, maka akan bergerak ke atas. Juga paddle bergerak hanya ketika selisih jaraknya lebih dari 20 dan ketika jarak bola x melewati setengah lapangan
                 {
                 leftPaddle.y -= (leftPaddle.speed * GetFrameTime());
             }
-            if (leftPaddle.y < ball.y && (ball.y -leftPaddle.y) > 20 && ball.x < 400 ) // Ketika Paddle berada di atas bola, maka akan bergerak ke bawah. Juga paddle bergerak hanya ketika selisih jaraknya lebih dari 20 dan ketika jarak bola x melewati setengah lapangan
+            if (leftPaddle.y < ball.y && (ball.y -leftPaddle.y) > 20 && ball.x < 400 && ball.x > 0 ) // Ketika Paddle berada di atas bola, maka akan bergerak ke bawah. Juga paddle bergerak hanya ketika selisih jaraknya lebih dari 20 dan ketika jarak bola x melewati setengah lapangan
             {
                 leftPaddle.y += (leftPaddle.speed * GetFrameTime());
             }
