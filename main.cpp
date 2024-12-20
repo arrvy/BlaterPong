@@ -2,16 +2,22 @@
 #include "button.hpp"
 #include <iostream>
 #include <time.h>
+#include <math.h>
+#include <fstream>
+
 
 using namespace std;
 
 enum GameScreen { LOGO = 0, MAIN_MENU, LEVEL_SELECTION, GAMEPLAY, EASY, MEDIUM, HARD };  // Define the screens
+GameScreen currentScreen = LOGO;
 
 float PaddleSpeed;
 bool PaddleUp;
 bool PaddleDown;
 bool BotUp  ;
 bool BotDown;
+
+
 static void Gameplay (float speed, bool PaddleConditionUp, bool  PaddleConditionDown );
 const char* winnerText = nullptr; // Teks pemenang
 // Resource
@@ -22,6 +28,11 @@ static Sound fxPush = { 0 };
 static Music ingame = { 0 };
 
 static int framesCounter = 0;
+
+//Skor
+int Skor = 0;
+int Time = 0;
+
 struct Ball {
     float x, y;      // Posisi bola
     float speedX, speedY; // Kecepatan bola
@@ -98,7 +109,7 @@ int main ()
     ingame = LoadMusicStream ("resources/Audio/ingame.mp3");
 
     // Initial screen state
-    GameScreen currentScreen = LOGO;
+
     bool exit = false;
     screenTarget = LoadRenderTexture(800, 600);
     SetTextureFilter(screenTarget.texture, TEXTURE_FILTER_BILINEAR);
@@ -204,7 +215,7 @@ int main ()
                 break;
 
             case EASY: {
-                PaddleSpeed = ( ball.x - leftPaddle.x) *1.2 * GetFrameTime();
+                PaddleSpeed = sqrt((ball.x - leftPaddle.x)*(ball.x - leftPaddle.x)+(ball.y - leftPaddle.x)*(ball.y - leftPaddle.x)) * GetFrameTime();
                 PaddleUp = BotUp;
                 PaddleDown= BotDown;
                 Gameplay (PaddleSpeed,PaddleUp, PaddleDown );
@@ -236,7 +247,7 @@ int main ()
 }
 
 static void Gameplay (float speed, bool PaddleConditionUp, bool  PaddleConditionDown ){
-
+        Time = GetTime();
             // Update posisi bola
             StopMusicStream(ingame);
             ball.x += ball.speedX * GetFrameTime();
@@ -288,13 +299,25 @@ static void Gameplay (float speed, bool PaddleConditionUp, bool  PaddleCondition
 
 
             // Cek jika bola keluar dari layar
-            if (ball.x < 0) {
-                winnerText = "Right Player Wins!"; // Pemain kanan menang
+            if (ball.x < 0 && Skor < 5) {
+                Skor++;
+
+
+            }
+            if(ball.x < 0 && Skor <= 4){
+            ball.x = GetScreenWidth() / 2;
+                ball.y = GetScreenHeight() / 2;
+                ball.speedX = 300;
+                ball.speedY = 300;
+            }
+            if( Skor == 5 || Skor > 5){
+                winnerText = "Player Wins!";
             }
             if (ball.x > GetScreenWidth()) {
-                winnerText = "Left Player Wins!"; // Pemain kiri menang
+                winnerText = "Game Over"; // Pemain kiri menang
+                Skor = 0;
             }
-            if (winnerText && IsKeyPressed(KEY_SPACE)) {
+            if (winnerText && IsKeyPressed(KEY_ENTER)) {
                 // Reset permainan jika SPACE ditekan
                 ball.x = GetScreenWidth() / 2;
                 ball.y = GetScreenHeight() / 2;
@@ -305,11 +328,48 @@ static void Gameplay (float speed, bool PaddleConditionUp, bool  PaddleCondition
 
             // Mulai menggambar ke layar utama
             BeginDrawing();
-            ClearBackground(BLACK); // Bersihkan latar belakang
+           ClearBackground(DARKBLUE)    ;  // Latar belakang ungu
+
+        // Gambar garis tengah lapangan (dotted line manual)
+        int midScreenX = GetScreenWidth() / 2; // Lebar layar diambil secara dinamis
+        DrawRectangle(midScreenX - 2, 10, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 30, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 50, 4, 10, WHITE); //Jangan Dihapus
+        DrawRectangle(midScreenX - 2, 70, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 90, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 110, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 130, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 150, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 170, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 190, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 210, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 230, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 250, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 270, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 290, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 310, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 330, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 350, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 370, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 390, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 410, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 430, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 450, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 470, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 490, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 510, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 530, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 550, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 570, 4, 10, WHITE);
+        DrawRectangle(midScreenX - 2, 590, 4, 10, WHITE);
+
+
+             // Bersihkan latar belakang
             ball.Draw(); // Gambar bola
             leftPaddle.Draw(); // Gambar paddle kiri
             rightPaddle.Draw(); // Gambar paddle kanan
-
+            DrawText(TextFormat("%i", Skor), ( GetScreenWidth()) / 4 - 20, 20, 80, WHITE);
+            DrawText(TextFormat("%i", Time), (3 * GetScreenWidth()) / 4 - 20, 20, 80, WHITE);
             // Tampilkan teks pemenang jika ada
             if (winnerText) {
                 int textWidth = MeasureText(winnerText, 60);
@@ -317,6 +377,20 @@ static void Gameplay (float speed, bool PaddleConditionUp, bool  PaddleCondition
             }
 
             DrawFPS(10, 10); // Tampilkan FPS
+            if (IsKeyPressed(KEY_SPACE))
+                {
+
+
+                    ball.x = GetScreenWidth() / 2;
+                ball.y = GetScreenHeight() / 2;
+                ball.speedX = 300;
+                ball.speedY = 300;
+                winnerText = nullptr; // Reset teks pemenang
+
+                    currentScreen=MAIN_MENU;
+
+                }
             EndDrawing();
+            Time = 0;
 
         }
