@@ -1,0 +1,13 @@
+# depslib dependency file v1.0
+1734678348 source:c:\users\oky\downloads\compressed\blaterpong-main\button.cpp
+	"button.hpp"
+
+1734678348 c:\users\oky\downloads\compressed\blaterpong-main\button.hpp
+	<raylib.h>
+
+1734697625 source:c:\users\oky\downloads\compressed\blaterpong-main\main.cpp
+	<raylib.h>
+	"button.hpp"
+	<iostream>
+	<time.h>
+

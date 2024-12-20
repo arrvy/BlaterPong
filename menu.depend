@@ -1,0 +1,28 @@
+# depslib dependency file v1.0
+1734677100 source:c:\users\nasabi\documents\code;block\menu\main.cpp
+	<raylib.h>
+	"button.hpp"
+	<iostream>
+
+1734673326 c:\users\nasabi\documents\code;block\menu\button.hpp
+	<raylib.h>
+
+1734671121 source:c:\users\nasabi\documents\code;block\menu\button.cpp
+	"button.hpp"
+
+1734677807 source:c:\users\nasabi\documents\code;block\menu\nyoba.cpp
+	<raylib.h>
+	<vector>
+	<string>
+
+1734678348 source:c:\users\oky\downloads\compressed\blaterpong-main\button.cpp
+	"button.hpp"
+
+1734678348 c:\users\oky\downloads\compressed\blaterpong-main\button.hpp
+	<raylib.h>
+
+1734689791 source:c:\users\oky\downloads\compressed\blaterpong-main\main.cpp
+	<raylib.h>
+	"button.hpp"
+	<iostream>
+
