@@ -1,5 +1,4 @@
 #include <raylib.h>
-
 #include "button.hpp"
 #include <iostream>
 #include <time.h>
@@ -71,12 +70,19 @@ Paddle leftPaddle; // Paddle kiri
 Paddle rightPaddle; // Paddle kanan
 
  //Memuat File HighScore
-    ofstream score("highscore.csv");
+
+
     list<int> listscore;
 
 // Fungsi untuk memuat skor dari file CSV
 void LoadScoresFromCSV() {
     ifstream file("highscore.csv");
+
+    if (!file.is_open()) {
+        cout << "Error: Could not open highscore.csv for reading." << endl;
+        return; // Keluar dari fungsi jika file tidak dapat dibuka
+    }
+
     string line;
     while (getline(file, line)) {
         if (!line.empty()) {
@@ -88,11 +94,17 @@ void LoadScoresFromCSV() {
 
 // Fungsi untuk menyimpan skor ke file CSV
 void SaveScoresToCSV() {
-    ofstream file("highscore.csv", ios::trunc); // Buka file dengan mode truncate untuk menghapus isi sebelumnya
-    for (int score : listscore) {
-        file << score << endl; // Tulis setiap skor ke file
+    ofstream scores("highscore.csv", ios::trunc); // Buka file dengan mode truncate untuk menghapus isi sebelumnya
+
+    if (!scores.is_open()) {
+        cout << "Error: Could not open highscore.csv for writing." << endl;
+        return; // Keluar dari fungsi jika file tidak dapat dibuka
     }
-    file.close();
+
+    for (int score : listscore) {
+        scores << score << endl; // Tulis setiap skor ke file
+    }
+    scores.close();
 }
 
 int main() {
@@ -266,7 +278,7 @@ int main() {
     // Menyimpan skor ke file CSV sebelum keluar
     SaveScoresToCSV();
 
-    score.close();
+
     UnloadTexture(texLogo);
     UnloadSound(fxPush);
     UnloadSound(fxCollision);
