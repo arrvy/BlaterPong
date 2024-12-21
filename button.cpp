@@ -21,9 +21,19 @@ Button::~Button()
     UnloadTexture(texture);
 }
 
-void Button::Draw()
+void Button::Draw(Vector2 mousePos) // Pastikan ini sesuai
 {
+    // Gambar tombol
     DrawTextureV(texture, position, WHITE);
+
+    // Buat rectangle untuk tombol
+    Rectangle rect = {position.x, position.y, static_cast<float>(texture.width), static_cast<float>(texture.height)};
+
+    // Periksa apakah mouse berada di atas tombol
+    if (CheckCollisionPointRec(mousePos, rect)) {
+        // Gambar outline jika mouse berada di atas tombol
+        DrawRectangleLinesEx(rect, 2, WHITE); // Gambar outline dengan ketebalan 2 dan warna putih
+    }
 }
 
 bool Button::isPressed(Vector2 mousePos, bool mousePressed)
