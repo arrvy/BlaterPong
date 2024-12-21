@@ -221,9 +221,9 @@ int main() {
                 BeginDrawing();
                 ClearBackground(BLACK);
                 DrawTexture(background, 0, 0, WHITE);
-                startButton.Draw();
-                scoreButton.Draw();
-                quitButton.Draw();
+                startButton.Draw(mousePosition);
+                scoreButton.Draw(mousePosition);
+                quitButton.Draw(mousePosition);
                 EndDrawing();
             } break;
 
@@ -251,10 +251,10 @@ int main() {
                 BeginDrawing();
                 ClearBackground(BLACK);
                 DrawTexture(background, 0, 0, WHITE);
-                level1Button.Draw();
-                level2Button.Draw();
-                level3Button.Draw();
-                backButton.Draw();
+                level1Button.Draw(mousePosition);
+                level2Button.Draw(mousePosition);
+                level3Button.Draw(mousePosition);
+                backButton.Draw(mousePosition);
                 EndDrawing();
             } break;
              case HIGH_SCORE: {
@@ -263,7 +263,7 @@ int main() {
                 BeginDrawing();
                 ClearBackground(RAYWHITE);
                 DrawTexture(background, 0, 0, WHITE);
-                backButton.Draw();
+                backButton.Draw(mousePosition);
                 DrawText(TextFormat("HI-SCORE: %i seconds", *listscore.begin()), (GetScreenWidth() / 6) , 200, 50, RAYWHITE);
                 EndDrawing();
 
