@@ -34,7 +34,6 @@
 		</Compiler>
 		<Unit filename="button.cpp" />
 		<Unit filename="main.cpp" />
-		<Unit filename="nyoba.cpp" />
 		<Extensions>
 			<lib_finder disable_auto="1" />
 		</Extensions>
