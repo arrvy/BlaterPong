@@ -8,7 +8,7 @@
 
 using namespace std;
 
-enum GameScreen { LOGO = 0, MAIN_MENU, LEVEL_SELECTION, GAMEPLAY, EASY, MEDIUM, HARD };  // Definisikan layar permainan
+enum GameScreen { LOGO = 0, MAIN_MENU, LEVEL_SELECTION, GAMEPLAY, EASY, MEDIUM, HARD, HIGH_SCORE, AFTER_GAME };  // Definisikan layar permainan
 GameScreen currentScreen = LOGO;
 
 float PaddleSpeed;
@@ -35,6 +35,8 @@ int Skor = 0;
 int WaktuNow = 0;
 int WaktuDulu = 0;
 int Time = 0;
+int TimeDisplay=0;
+
 int i=0;
 
 struct Ball {
@@ -115,7 +117,7 @@ int main() {
 
 
     // Memuat resource
-    Texture2D background = LoadTexture("resources/ft.png");
+    Texture2D background = LoadTexture("resources/background.png");
     Button startButton{"resources/start.png", {320, 200}, 2.5};
     Button scoreButton{"resources/score.png", {320, 275}, 2.5};
     Button quitButton{"resources/quit.png", {320, 350}, 2.5};
@@ -123,6 +125,8 @@ int main() {
     Button level2Button{"resources/level2.png", {320, 275}, 2.5};
     Button level3Button{"resources/level3.png", {320, 350}, 2.5};
     Button backButton{"resources/back.png", {10, 10}, 1.5}; // Tombol kembali untuk pemilihan level
+    //Resource Highcore
+
 
     // Inisialisasi bola
     ball.x = GetScreenWidth() / 2.0f;
@@ -204,6 +208,7 @@ int main() {
                 } else if (scoreButton.isPressed(mousePosition, mousePressed)) {
                     PlaySound(fxPush);
                     cout << "Tombol Skor Ditekan" << endl;
+                    currentScreen = HIGH_SCORE;
                     // Pindah ke layar skor (jika diperlukan)
                 } else if (quitButton.isPressed(mousePosition, mousePressed)) {
                     PlaySound(fxPush);
@@ -252,6 +257,26 @@ int main() {
                 backButton.Draw();
                 EndDrawing();
             } break;
+             case HIGH_SCORE: {
+
+                // Gambar layar pemilihan level
+                BeginDrawing();
+                ClearBackground(RAYWHITE);
+                DrawTexture(background, 0, 0, WHITE);
+                backButton.Draw();
+                DrawText(TextFormat("HI-SCORE: %i seconds", *listscore.begin()), (GetScreenWidth() / 6) , 200, 50, RAYWHITE);
+                EndDrawing();
+
+                if (IsKeyPressed(KEY_SPACE)) {
+
+                    currentScreen = MAIN_MENU; // Kembali ke menu utama
+                    }
+                else if (backButton.isPressed(mousePosition, mousePressed)) {
+                    PlaySound(fxPush);
+                    cout << "Tombol Kembali Ditekan" << endl;
+                    currentScreen = MAIN_MENU;  // Kembali ke menu utama
+                }
+            } break;
 
             case EASY: {
                 PaddleSpeed = 0*sqrt(2*(ball.x - leftPaddle.x) * (ball.x - leftPaddle.x) + (ball.y - leftPaddle.y) * (ball.y - leftPaddle.y)) * 1.2 * GetFrameTime();
@@ -273,8 +298,12 @@ int main() {
                 PaddleDown = BotDown;
                 Gameplay(PaddleSpeed, PaddleUp, PaddleDown);
             } break;
+
         }
+
+
     }
+
     // Menyimpan skor ke file CSV sebelum keluar
     SaveScoresToCSV();
 
@@ -293,7 +322,6 @@ static void Gameplay(float speed, bool PaddleConditionUp, bool PaddleConditionDo
     }
     WaktuNow = clock()/CLOCKS_PER_SEC;
     Time = WaktuNow-WaktuDulu;
-
 
 
 
@@ -359,10 +387,13 @@ static void Gameplay(float speed, bool PaddleConditionUp, bool PaddleConditionDo
     if (Skor == 5 || Skor > 5) {
         i++;
         winnerText = "Player Wins!";
+        BeginDrawing();
 
          if(i< 2){
+            TimeDisplay = Time;
             listscore.push_front(Time);
-            listscore.sort();
+
+
             SaveScoresToCSV(); // Simpan skor baru ke file CSV
             cout << "Skor: " << listscore.front() << endl;
          }
@@ -403,6 +434,8 @@ static void Gameplay(float speed, bool PaddleConditionUp, bool PaddleConditionDo
     if (winnerText) {
         int textWidth = MeasureText(winnerText, 60);
         DrawText(winnerText, GetScreenWidth() / 2 - textWidth / 2, GetScreenHeight() / 2 - 30, 60, YELLOW);
+                DrawText("Press ENTER to START game", GetScreenWidth() / 2 - textWidth / 2, 410, 20, LIGHTGRAY);
+                DrawText("Press SPACE to BACK to MAIN MENU", GetScreenWidth() / 2 - textWidth / 2, 450, 20, LIGHTGRAY);
     }
 
     DrawFPS(10, 10); // Tampilkan FPS
@@ -417,6 +450,10 @@ static void Gameplay(float speed, bool PaddleConditionUp, bool PaddleConditionDo
             Skor=0;
             i=0;
     }
-    EndDrawing();
+    if (Skor == 5 || Skor > 5){
+        DrawText(TextFormat("SCORE: %i", TimeDisplay), 280, 340, 40, MAROON);
+        listscore.sort();
+    }
+        EndDrawing();
     Time = 0;
 }
