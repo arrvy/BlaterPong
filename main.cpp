@@ -23,9 +23,18 @@ const char* winnerText = nullptr; // Teks pemenang
 // Resource
 static RenderTexture2D screenTarget = { 0 }; // Render texture untuk efek
 static Texture2D texLogo = { 0 }; // Tekstur logo
+static Texture2D field =  { 0 };
 static Sound fxCollision = { 0 };
 static Sound fxPush = { 0 };
+static Sound fxGameOver = { 0 };
+static Sound fxWinner = { 0 };
 static Music ingame = { 0 };
+static Music ingame1 = { 0 };
+static Music ingame2 = { 0 };
+static Music ingame3 = { 0 };
+Music musicTracks[] = { ingame1, ingame2, ingame3 };
+int randomIndex;
+
 
 static int framesCounter = 0;
 
@@ -38,6 +47,7 @@ int Time = 0;
 int TimeDisplay=0;
 
 int i=0;
+int s=0;
 
 struct Ball {
     float x, y;      // Posisi bola
@@ -117,7 +127,8 @@ int main() {
 
 
     // Memuat resource
-    Texture2D background = LoadTexture("resources/background.png");
+    Texture2D background = LoadTexture("resources/backgrounda.png");
+    field = LoadTexture("resources/field.png");
     Button startButton{"resources/start.png", {320, 200}, 2.5};
     Button scoreButton{"resources/score.png", {320, 275}, 2.5};
     Button quitButton{"resources/quit.png", {320, 350}, 2.5};
@@ -154,6 +165,11 @@ int main() {
     fxCollision = LoadSound("resources/Audio/Collision.wav");
     fxPush = LoadSound("resources/Audio/push.wav");
     ingame = LoadMusicStream("resources/Audio/ingame.mp3");
+    fxGameOver = LoadSound ("resources/Audio/gameover.wav");
+    fxWinner = LoadSound ("resources/Audio/winner.wav");
+    ingame1 = LoadMusicStream("resources/Audio/game1.wav");
+    ingame2 = LoadMusicStream("resources/Audio/game2.mp3");
+    ingame3 = LoadMusicStream("resources/Audio/game3.mp3");
 
     // Memuat skor dari file CSV
     LoadScoresFromCSV();
@@ -173,6 +189,11 @@ int main() {
         BotDown = leftPaddle.y < ball.y && (ball.y - leftPaddle.y) > 20 && ball.x < 400 && ball.x > 0;
 
         UpdateMusicStream(ingame);
+
+        UpdateMusicStream(ingame1);
+         UpdateMusicStream(ingame3);
+          UpdateMusicStream(ingame2);
+
 
         switch (currentScreen) {
             case LOGO: {
@@ -196,7 +217,7 @@ int main() {
                 ClearBackground(BLACK); // Bersihkan latar belakang layar utama
                 DrawTexture(screenTarget.texture, 0, 0, WHITE); // Gambar render texture ke layar utama
                 EndDrawing();
-                PlayMusicStream(ingame);
+                PlayMusicStream(ingame1);
             } break;
 
             case MAIN_MENU: {
@@ -279,7 +300,7 @@ int main() {
             } break;
 
             case EASY: {
-                PaddleSpeed = 0*sqrt(2*(ball.x - leftPaddle.x) * (ball.x - leftPaddle.x) + (ball.y - leftPaddle.y) * (ball.y - leftPaddle.y)) * 1.2 * GetFrameTime();
+                PaddleSpeed = sqrt(1.5*(ball.x - leftPaddle.x) * (ball.x - leftPaddle.x) + (ball.y - leftPaddle.y) * (ball.y - leftPaddle.y)) * 1.2 * GetFrameTime();
                 PaddleUp = BotUp;
                 PaddleDown = BotDown;
                 Gameplay(PaddleSpeed, PaddleUp, PaddleDown);
@@ -307,11 +328,24 @@ int main() {
     // Menyimpan skor ke file CSV sebelum keluar
     SaveScoresToCSV();
 
+    StopMusicStream(musicTracks[randomIndex]);
+
+
 
     UnloadTexture(texLogo);
+    UnloadTexture(background);
+    UnloadTexture(field);
     UnloadSound(fxPush);
     UnloadSound(fxCollision);
-    StopMusicStream(ingame);
+    UnloadSound(fxGameOver);
+    UnloadSound(fxWinner);
+    UnloadMusicStream(ingame);
+    UnloadMusicStream(ingame1);
+    UnloadMusicStream(ingame2);
+    UnloadMusicStream(ingame3);
+    UnloadRenderTexture(screenTarget);
+
+
     CloseWindow();  // Tutup jendela dan konteks
 }
 
@@ -323,10 +357,13 @@ static void Gameplay(float speed, bool PaddleConditionUp, bool PaddleConditionDo
     WaktuNow = clock()/CLOCKS_PER_SEC;
     Time = WaktuNow-WaktuDulu;
 
-
+     StopMusicStream(ingame);
+     StopMusicStream(ingame1);
+     StopMusicStream(ingame2);
+     StopMusicStream(ingame3);
 
     // Memperbarui posisi bola
-    StopMusicStream(ingame);
+
     ball.x += ball.speedX * GetFrameTime();
     ball.y += ball.speedY * GetFrameTime();
 
@@ -392,7 +429,7 @@ static void Gameplay(float speed, bool PaddleConditionUp, bool PaddleConditionDo
          if(i< 2){
             TimeDisplay = Time;
             listscore.push_front(Time);
-
+            PlaySound(fxWinner);
 
             SaveScoresToCSV(); // Simpan skor baru ke file CSV
             cout << "Skor: " << listscore.front() << endl;
@@ -400,6 +437,11 @@ static void Gameplay(float speed, bool PaddleConditionUp, bool PaddleConditionDo
     }
     if (ball.x > GetScreenWidth()) {
         winnerText = "Game Over"; // Pemain kiri menang
+         s++;
+         if(s< 2){
+             PlaySound(fxGameOver);
+         }
+
         Skor = 0;
     }
     if (winnerText && IsKeyPressed(KEY_ENTER)) {
@@ -412,6 +454,7 @@ static void Gameplay(float speed, bool PaddleConditionUp, bool PaddleConditionDo
         winnerText = nullptr; // Reset teks pemenang
         Skor=0;
         i=0;
+        s=0;
     }
 
     // Mulai menggambar ke layar utama
@@ -419,10 +462,12 @@ static void Gameplay(float speed, bool PaddleConditionUp, bool PaddleConditionDo
     ClearBackground(DARKBLUE); // Latar belakang biru tua
 
     // Gambar garis tengah lapangan (garis putus-putus manual)
-    int midScreenX = GetScreenWidth() / 2; // Lebar layar diambil secara dinamis
+    DrawTexture(field,0,0,WHITE);
+    /*int midScreenX = GetScreenWidth() / 2; // Lebar layar diambil secara dinamis
     for (int i = 10; i < GetScreenHeight(); i += 20) {
         DrawRectangle(midScreenX - 2, i, 4, 10, WHITE);
     }
+    */
 
     ball.Draw(); // Gambar bola
     leftPaddle.Draw(); // Gambar paddle kiri
@@ -434,8 +479,8 @@ static void Gameplay(float speed, bool PaddleConditionUp, bool PaddleConditionDo
     if (winnerText) {
         int textWidth = MeasureText(winnerText, 60);
         DrawText(winnerText, GetScreenWidth() / 2 - textWidth / 2, GetScreenHeight() / 2 - 30, 60, YELLOW);
-                DrawText("Press ENTER to START game", GetScreenWidth() / 2 - textWidth / 2, 410, 20, LIGHTGRAY);
-                DrawText("Press SPACE to BACK to MAIN MENU", GetScreenWidth() / 2 - textWidth / 2, 450, 20, LIGHTGRAY);
+                DrawText("Press ENTER to START game", GetScreenWidth() / 2 - textWidth / 2, 410, 20, RAYWHITE);
+                DrawText("Press SPACE to BACK to MAIN MENU", GetScreenWidth() / 2 - textWidth / 2, 450, 20, RAYWHITE);
     }
 
     DrawFPS(10, 10); // Tampilkan FPS
@@ -449,11 +494,24 @@ static void Gameplay(float speed, bool PaddleConditionUp, bool PaddleConditionDo
         currentScreen = MAIN_MENU; // Kembali ke menu utama
             Skor=0;
             i=0;
+            s=0;
+
+            randomIndex = GetRandomValue(0, 2); // 0, 1, atau 2
+            if(randomIndex==0){
+                PlayMusicStream(ingame1);
+            }else if(randomIndex==1){
+                PlayMusicStream(ingame2);
+            }else{
+                PlayMusicStream(ingame3);
+            }
+
+
     }
     if (Skor == 5 || Skor > 5){
         DrawText(TextFormat("SCORE: %i", TimeDisplay), 280, 340, 40, MAROON);
         listscore.sort();
+
     }
         EndDrawing();
-    Time = 0;
+
 }
