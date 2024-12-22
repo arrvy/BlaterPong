@@ -1,48 +1,517 @@
+#include <raylib.h>
 #include "button.hpp"
+#include <iostream>
+#include <time.h>
+#include <math.h>
+#include <list>
+#include <fstream>
 
-Button::Button(const char *imagePath, Vector2 imagePosition, float scale)
-{
-    Image image = LoadImage(imagePath);
+using namespace std;
 
-    int originalWidth = image.width;
-    int originalHeight = image.height;
+enum GameScreen { LOGO = 0, MAIN_MENU, LEVEL_SELECTION, GAMEPLAY, EASY, MEDIUM, HARD, HIGH_SCORE, AFTER_GAME };  // Definisikan layar permainan
+GameScreen currentScreen = LOGO;
 
-    int newWidth = static_cast<int>(originalWidth * scale);
-    int newHeight = static_cast<int>(originalHeight * scale);
+float PaddleSpeed;
+bool PaddleUp;
+bool PaddleDown;
+bool BotUp;
+bool BotDown;
 
-    ImageResize(&image, newWidth, newHeight);
-    texture = LoadTextureFromImage(image);
-    UnloadImage(image);
-    position = imagePosition;
-}
+static void Gameplay(float speed, bool PaddleConditionUp, bool PaddleConditionDown);
+const char* winnerText = nullptr; // Teks pemenang
 
-Button::~Button()
-{
-    UnloadTexture(texture);
-}
+// Resource
+static RenderTexture2D screenTarget = { 0 }; // Render texture untuk efek
+static Texture2D texLogo = { 0 }; // Tekstur logo
+static Texture2D field =  { 0 };
+static Sound fxCollision = { 0 };
+static Sound fxPush = { 0 };
+static Sound fxGameOver = { 0 };
+static Sound fxWinner = { 0 };
+static Music ingame = { 0 };
+static Music ingame1 = { 0 };
+static Music ingame2 = { 0 };
+static Music ingame3 = { 0 };
+Music musicTracks[] = { ingame1, ingame2, ingame3 };
+int randomIndex;
 
-void Button::Draw(Vector2 mousePos) // Pastikan ini sesuai
-{
-    // Gambar tombol
-    DrawTextureV(texture, position, WHITE);
 
-    // Buat rectangle untuk tombol
-    Rectangle rect = {position.x, position.y, static_cast<float>(texture.width), static_cast<float>(texture.height)};
+static int framesCounter = 0;
 
-    // Periksa apakah mouse berada di atas tombol
-    if (CheckCollisionPointRec(mousePos, rect)) {
-        // Gambar outline jika mouse berada di atas tombol
-        DrawRectangleLinesEx(rect, 2, WHITE); // Gambar outline dengan ketebalan 2 dan warna putih
+// Skor
+int Skor = 0;
+
+int WaktuNow = 0;
+int WaktuDulu = 0;
+int Time = 0;
+int TimeDisplay=0;
+
+int i=0;
+int s=0;
+
+struct Ball {
+    float x, y;      // Posisi bola
+    float speedX, speedY; // Kecepatan bola
+    float radius;    // Jari-jari bola
+
+    // Fungsi untuk menggambar bola
+    void Draw() {
+        DrawCircle((int)x, (int)y, radius, WHITE);
     }
+};
+
+// Struktur untuk paddle
+struct Paddle {
+    float x, y;      // Posisi paddle
+    float speed;     // Kecepatan paddle
+    float width, height; // Lebar dan tinggi paddle
+
+    // Mengembalikan rectangle untuk paddle
+    Rectangle GetRect() {
+        return Rectangle{ x - width / 2, y - height / 2, width, height };
+    }
+
+    // Fungsi untuk menggambar paddle
+    void Draw() {
+        DrawRectangleRec(GetRect(), WHITE);
+    }
+};
+
+Ball ball; // Objek bola
+Paddle leftPaddle; // Paddle kiri
+Paddle rightPaddle; // Paddle kanan
+
+ //Memuat File HighScore
+
+
+    list<int> listscore;
+
+// Fungsi untuk memuat skor dari file CSV
+void LoadScoresFromCSV() {
+    ifstream file("highscore.csv");
+
+    if (!file.is_open()) {
+        cout << "Error: Could not open highscore.csv for reading." << endl;
+        return; // Keluar dari fungsi jika file tidak dapat dibuka
+    }
+
+    string line;
+    while (getline(file, line)) {
+        if (!line.empty()) {
+            listscore.push_back(stoi(line)); // Tambahkan skor ke listscore
+        }
+    }
+    file.close();
 }
 
-bool Button::isPressed(Vector2 mousePos, bool mousePressed)
-{
-    Rectangle rect = {position.x, position.y, static_cast<float>(texture.width), static_cast<float>(texture.height)};
+// Fungsi untuk menyimpan skor ke file CSV
+void SaveScoresToCSV() {
+    ofstream scores("highscore.csv", ios::trunc); // Buka file dengan mode truncate untuk menghapus isi sebelumnya
 
-    if(CheckCollisionPointRec(mousePos,rect)&& mousePressed)
-    {
-        return true;
+    if (!scores.is_open()) {
+        cout << "Error: Could not open highscore.csv for writing." << endl;
+        return; // Keluar dari fungsi jika file tidak dapat dibuka
     }
-    return false;
+
+    for (int score : listscore) {
+        scores << score << endl; // Tulis setiap skor ke file
+    }
+    scores.close();
+}
+
+int main() {
+    // Inisialisasi jendela
+    InitWindow(800, 600, "BlaterPong");
+    SetTargetFPS(60);
+    InitAudioDevice();
+
+
+    // Memuat resource
+    Texture2D background = LoadTexture("resources/backgrounda.png");
+    field = LoadTexture("resources/field.png");
+    Button startButton{"resources/start.png", {320, 200}, 2.5};
+    Button scoreButton{"resources/score.png", {320, 275}, 2.5};
+    Button quitButton{"resources/quit.png", {320, 350}, 2.5};
+    Button level1Button{"resources/level1.png", {320, 200}, 2.5};
+    Button level2Button{"resources/level2.png", {320, 275}, 2.5};
+    Button level3Button{"resources/level3.png", {320, 350}, 2.5};
+    Button backButton{"resources/back.png", {10, 10}, 1.5}; // Tombol kembali untuk pemilihan level
+    //Resource Highcore
+
+
+    // Inisialisasi bola
+    ball.x = GetScreenWidth() / 2.0f;
+    ball.y = GetScreenHeight() / 2.0f;
+    ball.radius = 5;
+    ball.speedX = 300;
+    ball.speedY = 300;
+
+    // Inisialisasi paddle kiri
+    leftPaddle.x = 50;
+    leftPaddle.y = GetScreenHeight() / 2;
+    leftPaddle.width = 10;
+    leftPaddle.height = 100;
+    leftPaddle.speed = 500;
+
+    // Inisialisasi paddle kanan
+    rightPaddle.x = GetScreenWidth() - 50;
+    rightPaddle.y = GetScreenHeight() / 2;
+    rightPaddle.width = 10;
+    rightPaddle.height = 100;
+    rightPaddle.speed = 500;
+
+    // Memuat tekstur dan suara
+    texLogo = LoadTexture("resources/logo.png");
+    fxCollision = LoadSound("resources/Audio/Collision.wav");
+    fxPush = LoadSound("resources/Audio/push.wav");
+    ingame = LoadMusicStream("resources/Audio/ingame.mp3");
+    fxGameOver = LoadSound ("resources/Audio/gameover.wav");
+    fxWinner = LoadSound ("resources/Audio/winner.wav");
+    ingame1 = LoadMusicStream("resources/Audio/game1.mp3");
+    ingame2 = LoadMusicStream("resources/Audio/game2.mp3");
+    ingame3 = LoadMusicStream("resources/Audio/game3.mp3");
+
+    // Memuat skor dari file CSV
+    LoadScoresFromCSV();
+
+    //Waktu
+    WaktuDulu = 0;
+
+    // Status layar awal
+    bool exit = false;
+    screenTarget = LoadRenderTexture(800, 600);
+    SetTextureFilter(screenTarget.texture, TEXTURE_FILTER_BILINEAR);
+
+    while (!WindowShouldClose() && !exit) {
+        Vector2 mousePosition = GetMousePosition();
+        bool mousePressed = IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+        BotUp = leftPaddle.y > ball.y && (leftPaddle.y - ball.y) > 20 && ball.x < 400 && ball.x > 0 ;
+        BotDown = leftPaddle.y < ball.y && (ball.y - leftPaddle.y) > 20 && ball.x < 400 && ball.x > 0;
+
+        UpdateMusicStream(ingame);
+
+        UpdateMusicStream(ingame1);
+         UpdateMusicStream(ingame3);
+          UpdateMusicStream(ingame2);
+
+
+        switch (currentScreen) {
+            case LOGO: {
+                // Memperbarui layar LOGO
+                framesCounter++;
+
+                if (framesCounter > 300) {
+                    framesCounter = 0;
+                    currentScreen = MAIN_MENU; // Pindah ke layar MENU UTAMA setelah 300 frame
+                }
+
+                // Mulai menggambar ke render texture
+                BeginTextureMode(screenTarget);
+                ClearBackground(BLACK); // Bersihkan latar belakang
+
+                DrawTexture(texLogo, (GetScreenWidth() - texLogo.width) / 2, (GetScreenHeight() - texLogo.height) / 2, WHITE); // Gambar logo di tengah
+                EndTextureMode(); // Selesai menggambar ke render texture
+
+                // Mulai menggambar ke layar utama
+                BeginDrawing();
+                ClearBackground(BLACK); // Bersihkan latar belakang layar utama
+                DrawTexture(screenTarget.texture, 0, 0, WHITE); // Gambar render texture ke layar utama
+                EndDrawing();
+                PlayMusicStream(ingame1);
+            } break;
+
+            case MAIN_MENU: {
+                // Menangani penekanan tombol di menu utama
+                if (startButton.isPressed(mousePosition, mousePressed)) {
+                    PlaySound(fxPush);
+                    cout << "Tombol Mulai Ditekan" << endl;
+                    currentScreen = LEVEL_SELECTION;  // Pindah ke layar pemilihan level
+                } else if (scoreButton.isPressed(mousePosition, mousePressed)) {
+                    PlaySound(fxPush);
+                    cout << "Tombol Skor Ditekan" << endl;
+                    currentScreen = HIGH_SCORE;
+                    // Pindah ke layar skor (jika diperlukan)
+                } else if (quitButton.isPressed(mousePosition, mousePressed)) {
+                    PlaySound(fxPush);
+                    exit = true;  // Keluar dari permainan
+                }
+
+
+
+                // Gambar layar menu utama
+                BeginDrawing();
+                ClearBackground(BLACK);
+                DrawTexture(background, 0, 0, WHITE);
+                startButton.Draw(mousePosition);
+                scoreButton.Draw(mousePosition);
+                quitButton.Draw(mousePosition);
+                EndDrawing();
+            } break;
+
+            case LEVEL_SELECTION: {
+                // Menangani penekanan tombol di layar pemilihan level
+                if (level1Button.isPressed(mousePosition, mousePressed)) {
+                    PlaySound(fxPush);
+                    cout << "Level 1 Dipilih" << endl;
+                    currentScreen = EASY; // Pindah ke gameplay untuk Level 1
+                } else if (level2Button.isPressed(mousePosition, mousePressed)) {
+                    PlaySound(fxPush);
+                    cout << "Level 2 Dipilih" << endl;
+                    currentScreen = MEDIUM; // Pindah ke gameplay untuk Level 2
+                } else if (level3Button.isPressed(mousePosition, mousePressed)) {
+                    PlaySound(fxPush);
+                    cout << "Level 3 Dipilih" << endl;
+                    currentScreen = HARD; // Pindah ke gameplay untuk Level 3
+                } else if (backButton.isPressed(mousePosition, mousePressed)) {
+                    PlaySound(fxPush);
+                    cout << "Tombol Kembali Ditekan" << endl;
+                    currentScreen = MAIN_MENU;  // Kembali ke menu utama
+                }
+
+                // Gambar layar pemilihan level
+                BeginDrawing();
+                ClearBackground(BLACK);
+                DrawTexture(background, 0, 0, WHITE);
+                level1Button.Draw(mousePosition);
+                level2Button.Draw(mousePosition);
+                level3Button.Draw(mousePosition);
+                backButton.Draw(mousePosition);
+                EndDrawing();
+            } break;
+             case HIGH_SCORE: {
+
+                // Gambar layar pemilihan level
+                BeginDrawing();
+                ClearBackground(RAYWHITE);
+                DrawTexture(background, 0, 0, WHITE);
+                backButton.Draw(mousePosition);
+                DrawText(TextFormat("HI-SCORE: %i seconds", *listscore.begin()), (GetScreenWidth() / 6) , 200, 50, RAYWHITE);
+                EndDrawing();
+
+                if (IsKeyPressed(KEY_SPACE)) {
+
+                    currentScreen = MAIN_MENU; // Kembali ke menu utama
+                    }
+                else if (backButton.isPressed(mousePosition, mousePressed)) {
+                    PlaySound(fxPush);
+                    cout << "Tombol Kembali Ditekan" << endl;
+                    currentScreen = MAIN_MENU;  // Kembali ke menu utama
+                }
+            } break;
+
+            case EASY: {
+                PaddleSpeed = sqrt(1.5*(ball.x - leftPaddle.x) * (ball.x - leftPaddle.x) + (ball.y - leftPaddle.y) * (ball.y - leftPaddle.y)) * 1.2 * GetFrameTime();
+                PaddleUp = BotUp;
+                PaddleDown = BotDown;
+                Gameplay(PaddleSpeed, PaddleUp, PaddleDown);
+            } break;
+
+            case MEDIUM: {
+                PaddleSpeed = leftPaddle.speed / 1.5 * GetFrameTime();
+                PaddleUp = BotUp;
+                PaddleDown = BotDown;
+                Gameplay(PaddleSpeed, PaddleUp, PaddleDown);
+            } break;
+
+            case HARD: {
+                PaddleSpeed = (leftPaddle.speed * GetFrameTime());
+                PaddleUp = BotUp;
+                PaddleDown = BotDown;
+                Gameplay(PaddleSpeed, PaddleUp, PaddleDown);
+            } break;
+
+        }
+
+
+    }
+
+    // Menyimpan skor ke file CSV sebelum keluar
+    SaveScoresToCSV();
+
+    StopMusicStream(musicTracks[randomIndex]);
+
+
+
+    UnloadTexture(texLogo);
+    UnloadTexture(background);
+    UnloadTexture(field);
+    UnloadSound(fxPush);
+    UnloadSound(fxCollision);
+    UnloadSound(fxGameOver);
+    UnloadSound(fxWinner);
+    UnloadMusicStream(ingame);
+    UnloadMusicStream(ingame1);
+    UnloadMusicStream(ingame2);
+    UnloadMusicStream(ingame3);
+    UnloadRenderTexture(screenTarget);
+
+
+    CloseWindow();  // Tutup jendela dan konteks
+}
+
+static void Gameplay(float speed, bool PaddleConditionUp, bool PaddleConditionDown) {
+    //Timer
+    if (WaktuDulu ==0){
+    WaktuDulu = GetTime();
+    }
+    WaktuNow = clock()/CLOCKS_PER_SEC;
+    Time = WaktuNow-WaktuDulu;
+
+     StopMusicStream(ingame);
+     StopMusicStream(ingame1);
+     StopMusicStream(ingame2);
+     StopMusicStream(ingame3);
+
+    // Memperbarui posisi bola
+
+    ball.x += ball.speedX * GetFrameTime();
+    ball.y += ball.speedY * GetFrameTime();
+
+    // Deteksi tabrakan dengan tepi atas dan bawah
+    if (ball.y < 0) {
+        PlaySound(fxCollision);
+        ball.y = 0;
+        ball.speedY *= -1; // Balik arah bola
+    }
+    if (ball.y > GetScreenHeight()) {
+        PlaySound(fxCollision);
+        ball.y = GetScreenHeight();
+        ball.speedY *= -1; // Balik arah bola
+    }
+
+    // Kontrol paddle kiri
+    if (PaddleConditionUp) {
+        leftPaddle.y -= speed;
+    }
+    if (PaddleConditionDown) {
+        leftPaddle.y += speed;
+    }
+
+    // Kontrol paddle kanan
+    if (IsKeyDown(KEY_UP) && rightPaddle.y > 50) {
+        rightPaddle.y -= rightPaddle.speed * GetFrameTime();
+    }
+    if (IsKeyDown(KEY_DOWN) && rightPaddle.y < GetScreenHeight() - 50) {
+        rightPaddle.y += rightPaddle.speed * GetFrameTime();
+    }
+
+    // Deteksi tabrakan bola dengan paddle
+    if (CheckCollisionCircleRec(Vector2{ ball.x, ball.y }, ball.radius, leftPaddle.GetRect())) {
+        if (ball.speedX < 0) {
+            PlaySound(fxCollision);
+            ball.speedX *= -1.1f; // Tingkatkan kecepatan bola
+            ball.speedY = (ball.y - leftPaddle.y) / (leftPaddle.height / 2) * ball.speedX; // Atur kecepatan Y
+        }
+    }
+    if (CheckCollisionCircleRec(Vector2{ ball.x, ball.y }, ball.radius, rightPaddle.GetRect())) {
+        if (ball.speedX > 0) {
+            PlaySound(fxCollision);
+            ball.speedX *= -1.1f; // Tingkatkan kecepatan bola
+            ball.speedY = (ball.y - rightPaddle.y) / (rightPaddle.height / 2) * -ball.speedX; // Atur kecepatan Y
+        }
+    }
+
+    // Cek jika bola keluar dari layar
+    if (ball.x < 0 && Skor < 5) {
+        Skor++;
+    }
+    if (ball.x < 0 && Skor <= 4) {
+        ball.x = GetScreenWidth() / 2;
+        ball.y = GetScreenHeight() / 2;
+        ball.speedX = 300;
+        ball.speedY = 0;
+    }
+    if (Skor == 5 || Skor > 5) {
+        i++;
+        winnerText = "Player Wins!";
+        BeginDrawing();
+
+         if(i< 2){
+            TimeDisplay = Time;
+            listscore.push_front(Time);
+            PlaySound(fxWinner);
+
+            SaveScoresToCSV(); // Simpan skor baru ke file CSV
+            cout << "Skor: " << listscore.front() << endl;
+         }
+    }
+    if (ball.x > GetScreenWidth()) {
+        winnerText = "Game Over"; // Pemain kiri menang
+         s++;
+         if(s< 2){
+             PlaySound(fxGameOver);
+         }
+
+        Skor = 0;
+    }
+    if (winnerText && IsKeyPressed(KEY_ENTER)) {
+            WaktuDulu = WaktuNow;
+        // Reset permainan jika ENTER ditekan
+        ball.x = GetScreenWidth() / 2;
+        ball.y = GetScreenHeight() / 2;
+        ball.speedX = 300;
+        ball.speedY = 300;
+        winnerText = nullptr; // Reset teks pemenang
+        Skor=0;
+        i=0;
+        s=0;
+    }
+
+    // Mulai menggambar ke layar utama
+    BeginDrawing();
+    ClearBackground(DARKBLUE); // Latar belakang biru tua
+
+    // Gambar garis tengah lapangan (garis putus-putus manual)
+    DrawTexture(field,0,0,WHITE);
+    /*int midScreenX = GetScreenWidth() / 2; // Lebar layar diambil secara dinamis
+    for (int i = 10; i < GetScreenHeight(); i += 20) {
+        DrawRectangle(midScreenX - 2, i, 4, 10, WHITE);
+    }
+    */
+
+    ball.Draw(); // Gambar bola
+    leftPaddle.Draw(); // Gambar paddle kiri
+    rightPaddle.Draw(); // Gambar paddle kanan
+    DrawText(TextFormat("%i/5", Skor), (GetScreenWidth()) / 4 - 20, 20, 80, ORANGE);
+    DrawText(TextFormat("%i", Time), (3 * GetScreenWidth()) / 4 - 20, 20, 80, RAYWHITE);
+
+    // Tampilkan teks pemenang jika ada
+    if (winnerText) {
+        int textWidth = MeasureText(winnerText, 60);
+        DrawText(winnerText, GetScreenWidth() / 2 - textWidth / 2, GetScreenHeight() / 2 - 30, 60, YELLOW);
+                DrawText("Press ENTER to START game", GetScreenWidth() / 2 - textWidth / 2, 410, 20, RAYWHITE);
+                DrawText("Press SPACE to BACK to MAIN MENU", GetScreenWidth() / 2 - textWidth / 2, 450, 20, RAYWHITE);
+    }
+
+    DrawFPS(10, 10); // Tampilkan FPS
+    if (IsKeyPressed(KEY_SPACE)) {
+            WaktuDulu = 0;
+        ball.x = GetScreenWidth() / 2;
+        ball.y = GetScreenHeight() / 2;
+        ball.speedX = 300;
+        ball.speedY = 300;
+        winnerText = nullptr; // Reset teks pemenang
+        currentScreen = MAIN_MENU; // Kembali ke menu utama
+            Skor=0;
+            i=0;
+            s=0;
+
+            randomIndex = GetRandomValue(0, 2); // 0, 1, atau 2
+            if(randomIndex==0){
+                PlayMusicStream(ingame1);
+            }else if(randomIndex==1){
+                PlayMusicStream(ingame2);
+            }else{
+                PlayMusicStream(ingame3);
+            }
+
+
+    }
+    if (Skor == 5 || Skor > 5){
+        DrawText(TextFormat("SCORE: %i", TimeDisplay), 280, 340, 40, MAROON);
+        listscore.sort();
+
+    }
+        EndDrawing();
+
 }
