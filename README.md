@@ -50,29 +50,6 @@ Kami sangat terbuka untuk kontribusi dari para pengembang dan pemain! Jika Anda 
 Proyek ini dilisensikan di bawah **MIT License** - lihat [LICENSE](LICENSE) untuk lebih lanjut.
 
 ## Kolaborator
-.photos {
-  display: inline-block;
-  position: relative;
-  width: 200px;
-  height: 200px;
-  overflow: hidden;
-  border-radius: 50%;
-}
-
-<div class="photos">
-<a href="[Github Profile url](https://github.com/arrvy)"> 
-  <img href="[Github profile image source](https://avatars.githubusercontent.com/u/181921058?v=4)"> 
-</a> 
-<div class="photos">
-<a href="Github Profile url"> 
-  <img href="Github profile image soure"> 
-</a> 
-<div class="photos">
-<a href="Github Profile url"> 
-  <img href="Github profile image source"> 
-</a> 
-<div class="photos">
-<a href="Github Profile url"> 
-  <img href="Github profile image source"> 
-</a> 
-</div>
+<a href="https://github.com/arrvy/BlaterPong/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=arrvy/BlaterPong" />
+</a>
