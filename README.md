@@ -34,6 +34,8 @@
    ./BlaterPong
    ```
 
+   PASTIKAN FILE BIN(.EXE) BERADA PADA SATU FOLDER YANG SAMA DENGAN MAIN.CPP
+
 ## Kontrol
 - **Paddle Pemain**: Gunakan tombol **Panah Atas** untuk bergerak ke atas dan **Panah Bawah** untuk bergerak ke bawah.
 - **Paddle Bot**: Bot akan secara otomatis bergerak berdasarkan tingkat kesulitan yang dipilih.
