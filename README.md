@@ -5,7 +5,7 @@
 - **Highscore**: Catat skor tertinggi Anda dan coba untuk mengalahkan rekor tersebut.
 - **Tiga Tingkat Kesulitan**: Pilih tingkat kesulitan sesuai dengan kemampuan Anda, dari bot yang mudah hingga yang sangat menantang.
 - **UI Menarik**: Antarmuka grafis yang bersih dan modern, dengan tampilan yang mudah dipahami dan menyenangkan untuk dilihat.
-- **Backsound Asyik**: Musik latar yang menyenangkan untuk meningkatkan suasana permainan.
+- **Backsound Asyik**: Musik latar yang menyenangkan untuk meningkatkan suasana permainan. Juga terdapat berbagai musik di dalam TrackMusics
 - **Kontrol yang Sederhana**: Gunakan keyboard untuk mengendalikan paddle dan menghindari bola yang datang dengan kecepatan yang semakin meningkat.
 
 ## Teknologi
