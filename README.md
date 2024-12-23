@@ -47,11 +47,3 @@
 
 ## Kontribusi
 Kami sangat terbuka untuk kontribusi dari para pengembang dan pemain! Jika Anda memiliki ide atau perbaikan untuk fitur baru, silakan buka issue atau ajukan pull request. Pastikan untuk melakukan pengujian sebelum mengirimkan kontribusi Anda.
-
-## Lisensi
-Proyek ini dilisensikan di bawah **MIT License** - lihat [LICENSE](LICENSE) untuk lebih lanjut.
-
-## Kolaborator
-<a href="https://github.com/arrvy/BlaterPong/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=arrvy/BlaterPong" />
-</a>
